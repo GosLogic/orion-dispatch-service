@@ -1,0 +1,16 @@
+services:
+  postgres-dispatch:
+    image: postgres:16-alpine
+    container_name: orion-dispatch-db
+    environment:
+      POSTGRES_DB: orion-dispatch
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5433:5432"
+    volumes:
+      - dispatch_pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  dispatch_pg_data:

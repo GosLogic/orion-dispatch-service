@@ -1,0 +1,96 @@
+package com.goslogic.orion.dispatch.application;
+
+import com.goslogic.orion.dispatch.application.exception.ForbiddenException;
+import com.goslogic.orion.dispatch.application.exception.ResourceNotFoundException;
+import com.goslogic.orion.dispatch.domain.model.RouteSheet;
+import com.goslogic.orion.dispatch.domain.model.RouteSheetStatus;
+import com.goslogic.orion.dispatch.domain.repository.RouteSheetRepository;
+import com.goslogic.orion.dispatch.infrastructure.messaging.DomainEventPublisher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class RouteSheetApplicationServiceTest {
+
+    @Mock RouteSheetRepository routeSheetRepository;
+    @Mock DomainEventPublisher eventPublisher;
+
+    RouteSheetApplicationService service;
+
+    RouteSheet sheet;
+
+    @BeforeEach
+    void setUp() {
+        service = new RouteSheetApplicationService(routeSheetRepository, eventPublisher);
+
+        sheet = new RouteSheet(
+                "route-demo-001", "tenant-demo", "driver-demo",
+                "vehicle-001", "ABC-1234", "Mercedes Sprinter 2024",
+                LocalDate.now()
+        );
+        sheet.setStatus(RouteSheetStatus.ASSIGNED);
+
+        when(routeSheetRepository.findByExternalIdAndTenantExternalId("route-demo-001", "tenant-demo"))
+                .thenReturn(Optional.of(sheet));
+        when(routeSheetRepository.findByExternalIdAndTenantExternalId("inexistente", "tenant-demo"))
+                .thenReturn(Optional.empty());
+        when(routeSheetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    @Test
+    void startJornada_cambia_estado_a_IN_PROGRESS() {
+        RouteSheet result = service.startJornada("route-demo-001", "tenant-demo", "driver-demo");
+        assertThat(result.getStatus()).isEqualTo(RouteSheetStatus.IN_PROGRESS);
+        assertThat(result.getStartedAt()).isNotNull();
+        verify(eventPublisher).publish(eq("orion.dispatch.jornada-started"), anyMap());
+    }
+
+    @Test
+    void startJornada_idempotente_si_ya_es_IN_PROGRESS() {
+        sheet.start();
+        RouteSheet result = service.startJornada("route-demo-001", "tenant-demo", "driver-demo");
+        assertThat(result.getStatus()).isEqualTo(RouteSheetStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void startJornada_lanza_404_si_no_existe() {
+        assertThatThrownBy(() -> service.startJornada("inexistente", "tenant-demo", "driver-demo"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void startJornada_lanza_403_si_driver_no_coincide() {
+        assertThatThrownBy(() -> service.startJornada("route-demo-001", "tenant-demo", "otro-driver"))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void endJornada_cambia_estado_a_COMPLETED() {
+        sheet.start();
+        RouteSheet result = service.endJornada("route-demo-001", "tenant-demo", "driver-demo");
+        assertThat(result.getStatus()).isEqualTo(RouteSheetStatus.COMPLETED);
+        assertThat(result.getCompletedAt()).isNotNull();
+        verify(eventPublisher).publish(eq("orion.dispatch.jornada-ended"), anyMap());
+    }
+
+    @Test
+    void endJornada_idempotente_si_ya_es_COMPLETED() {
+        sheet.start();
+        sheet.complete();
+        RouteSheet result = service.endJornada("route-demo-001", "tenant-demo", "driver-demo");
+        assertThat(result.getStatus()).isEqualTo(RouteSheetStatus.COMPLETED);
+    }
+}
