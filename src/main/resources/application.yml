@@ -24,6 +24,11 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
 
+  activemq:
+    broker-url: tcp://localhost:61616
+    user: admin
+    password: admin
+
 management:
   endpoints:
     web:
