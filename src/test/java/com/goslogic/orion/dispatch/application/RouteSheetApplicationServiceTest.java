@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -92,5 +93,48 @@ class RouteSheetApplicationServiceTest {
         sheet.complete();
         RouteSheet result = service.endJornada("route-demo-001", "tenant-demo", "driver-demo");
         assertThat(result.getStatus()).isEqualTo(RouteSheetStatus.COMPLETED);
+    }
+
+    @Test
+    void endJornada_lanza_403_si_driver_no_coincide() {
+        sheet.start();
+        assertThatThrownBy(() -> service.endJornada("route-demo-001", "tenant-demo", "otro-driver"))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void endJornada_lanza_404_si_no_existe() {
+        assertThatThrownBy(() -> service.endJornada("inexistente", "tenant-demo", "driver-demo"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void startJornada_lanza_409_si_ya_esta_COMPLETED() {
+        sheet.start();
+        sheet.complete();
+        assertThatThrownBy(() -> service.startJornada("route-demo-001", "tenant-demo", "driver-demo"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No se puede iniciar una hoja ya completada");
+    }
+
+    @Test
+    void listForDriver_retorna_hojas_del_conductor() {
+        when(routeSheetRepository.findByDriverExternalIdAndTenantExternalId("driver-demo", "tenant-demo"))
+                .thenReturn(List.of(sheet));
+
+        List<RouteSheet> result = service.listForDriver("tenant-demo", "driver-demo");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getExternalId()).isEqualTo("route-demo-001");
+    }
+
+    @Test
+    void listForDriver_retorna_lista_vacia_si_no_hay_hojas() {
+        when(routeSheetRepository.findByDriverExternalIdAndTenantExternalId("driver-demo", "tenant-demo"))
+                .thenReturn(List.of());
+
+        List<RouteSheet> result = service.listForDriver("tenant-demo", "driver-demo");
+
+        assertThat(result).isEmpty();
     }
 }

@@ -12,7 +12,11 @@ spring:
     open-in-view: false
 
   jackson:
+<<<<<<< HEAD
     property-naming-strategy: SNAKE_CASE
 
   activemq:
     in-memory: true
+=======
+    property-naming-strategy: SNAKE_CASE
+>>>>>>> ec75840169b7553cd122c4fd20f40983dc322fdc

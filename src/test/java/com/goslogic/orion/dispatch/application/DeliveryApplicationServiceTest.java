@@ -123,4 +123,16 @@ class DeliveryApplicationServiceTest {
         assertThat(stop.getStatus()).isEqualTo(TripStopStatus.PENDING);
         verify(tripStopRepository, never()).save(stop);
     }
+
+    @Test
+    void registerDelivery_lanza_error_si_proof_type_invalido() {
+        CreateDeliveryCommand invalidCmd = new CreateDeliveryCommand(
+                "del-new", "stop-001", "tenant-demo",
+                "Cliente", "Paquete", "INVALIDO",
+                null, null, null, null, true
+        );
+
+        assertThatThrownBy(() -> service.registerDelivery(invalidCmd))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }
