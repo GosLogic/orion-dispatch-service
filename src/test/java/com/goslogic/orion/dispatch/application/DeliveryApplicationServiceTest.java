@@ -64,7 +64,8 @@ class DeliveryApplicationServiceTest {
                 deliveryId, stopId, "tenant-demo",
                 "Cliente 1", "Paquete estándar #1",
                 "photo", "photo_local.jpg", null,
-                null, "2026-06-05T10:30:00Z", isCompleted
+                null, "2026-06-05T10:30:00Z", isCompleted,
+                -12.05, -77.05
         );
     }
 
@@ -129,7 +130,8 @@ class DeliveryApplicationServiceTest {
         CreateDeliveryCommand invalidCmd = new CreateDeliveryCommand(
                 "del-new", "stop-001", "tenant-demo",
                 "Cliente", "Paquete", "INVALIDO",
-                null, null, null, null, true
+                null, null, null, null, true,
+                null, null
         );
 
         assertThatThrownBy(() -> service.registerDelivery(invalidCmd))

@@ -25,15 +25,10 @@ public class TripStopController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar paradas de una hoja de ruta")
+    @Operation(summary = "Listar paradas de una hoja de ruta (con entregas anidadas)")
     public ResponseEntity<List<TripStopResponse>> listByRouteSheet(
             @RequestParam("route_sheet_id") String routeSheetId) {
-        List<TripStopResponse> result = tripStopService
-                .listByRouteSheet(routeSheetId)
-                .stream()
-                .map(TripStopResponse::from)
-                .toList();
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(tripStopService.listByRouteSheetWithDeliveries(routeSheetId));
     }
 
     @PatchMapping("/{tripStopId}/arrived")
@@ -42,7 +37,8 @@ public class TripStopController {
             @PathVariable String tripStopId,
             @Valid @RequestBody StatusUpdateRequest req,
             @RequestHeader("X-Tenant-Id") String tenantExternalId) {
-        TripStop stop = tripStopService.markArrived(tripStopId, tenantExternalId);
+        TripStop stop = tripStopService.markArrived(
+                tripStopId, tenantExternalId, req.latitude(), req.longitude());
         return ResponseEntity.ok(new StatusResponse(stop.getExternalId(), stop.getStatus().name()));
     }
 }

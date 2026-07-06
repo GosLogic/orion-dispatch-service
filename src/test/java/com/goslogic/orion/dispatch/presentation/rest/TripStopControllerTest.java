@@ -5,6 +5,8 @@ import com.goslogic.orion.dispatch.application.exception.ResourceNotFoundExcepti
 import com.goslogic.orion.dispatch.domain.model.RouteSheet;
 import com.goslogic.orion.dispatch.domain.model.TripStop;
 import com.goslogic.orion.dispatch.domain.model.TripStopStatus;
+import com.goslogic.orion.dispatch.presentation.dto.DeliverySummaryResponse;
+import com.goslogic.orion.dispatch.presentation.dto.TripStopResponse;
 import com.goslogic.orion.dispatch.presentation.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +55,8 @@ class TripStopControllerTest {
 
     @Test
     void listByRouteSheet_retorna_200() throws Exception {
-        when(tripStopService.listByRouteSheet("route-demo-001")).thenReturn(List.of(stop));
+        TripStopResponse response = TripStopResponse.from(stop, List.of());
+        when(tripStopService.listByRouteSheetWithDeliveries("route-demo-001")).thenReturn(List.of(response));
 
         mockMvc.perform(get("/v1/dispatch/trip-stops")
                         .param("route_sheet_id", "route-demo-001"))
@@ -61,12 +64,30 @@ class TripStopControllerTest {
                 .andExpect(jsonPath("$[0].id").value("stop-001"))
                 .andExpect(jsonPath("$[0].route_sheet_id").value("route-demo-001"))
                 .andExpect(jsonPath("$[0].location_name").value("Bodega Central"))
-                .andExpect(jsonPath("$[0].status").value("PENDING"));
+                .andExpect(jsonPath("$[0].status").value("PENDING"))
+                .andExpect(jsonPath("$[0].deliveries").isArray())
+                .andExpect(jsonPath("$[0].deliveries").isEmpty());
+    }
+
+    @Test
+    void listByRouteSheet_retorna_entregas_anidadas() throws Exception {
+        DeliverySummaryResponse delivery = new DeliverySummaryResponse(
+                "del-stop-001-1", "stop-001", "Cliente 1", "Paquete #1",
+                "PENDING", null, null, null, null, null, null, null
+        );
+        TripStopResponse response = TripStopResponse.from(stop, List.of(delivery));
+        when(tripStopService.listByRouteSheetWithDeliveries("route-demo-001")).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/v1/dispatch/trip-stops")
+                        .param("route_sheet_id", "route-demo-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].deliveries[0].id").value("del-stop-001-1"))
+                .andExpect(jsonPath("$[0].deliveries[0].customer_name").value("Cliente 1"));
     }
 
     @Test
     void listByRouteSheet_retorna_lista_vacia() throws Exception {
-        when(tripStopService.listByRouteSheet("route-vacia")).thenReturn(List.of());
+        when(tripStopService.listByRouteSheetWithDeliveries("route-vacia")).thenReturn(List.of());
 
         mockMvc.perform(get("/v1/dispatch/trip-stops")
                         .param("route_sheet_id", "route-vacia"))
@@ -78,7 +99,7 @@ class TripStopControllerTest {
     @Test
     void markArrived_retorna_200() throws Exception {
         stop.setStatus(TripStopStatus.ARRIVED);
-        when(tripStopService.markArrived("stop-001", "tenant-demo")).thenReturn(stop);
+        when(tripStopService.markArrived(eq("stop-001"), eq("tenant-demo"), any(), any())).thenReturn(stop);
 
         mockMvc.perform(patch("/v1/dispatch/trip-stops/stop-001/arrived")
                         .header("X-Tenant-Id", "tenant-demo")
@@ -101,7 +122,7 @@ class TripStopControllerTest {
 
     @Test
     void markArrived_retorna_404_si_no_existe() throws Exception {
-        when(tripStopService.markArrived(anyString(), anyString()))
+        when(tripStopService.markArrived(anyString(), anyString(), any(), any()))
                 .thenThrow(new ResourceNotFoundException("TripStop no encontrada: stop-xxx"));
 
         mockMvc.perform(patch("/v1/dispatch/trip-stops/stop-xxx/arrived")

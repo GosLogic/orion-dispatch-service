@@ -1,10 +1,14 @@
 package com.goslogic.orion.dispatch.application;
 
 import com.goslogic.orion.dispatch.application.exception.ResourceNotFoundException;
+import com.goslogic.orion.dispatch.domain.model.Delivery;
+import com.goslogic.orion.dispatch.domain.model.DeliveryStatus;
 import com.goslogic.orion.dispatch.domain.model.RouteSheet;
 import com.goslogic.orion.dispatch.domain.model.TripStop;
 import com.goslogic.orion.dispatch.domain.model.TripStopStatus;
+import com.goslogic.orion.dispatch.domain.repository.DeliveryRepository;
 import com.goslogic.orion.dispatch.domain.repository.TripStopRepository;
+import com.goslogic.orion.dispatch.presentation.dto.TripStopResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +31,7 @@ import static org.mockito.Mockito.*;
 class TripStopApplicationServiceTest {
 
     @Mock TripStopRepository tripStopRepository;
+    @Mock DeliveryRepository deliveryRepository;
 
     TripStopApplicationService service;
 
@@ -35,7 +40,7 @@ class TripStopApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TripStopApplicationService(tripStopRepository);
+        service = new TripStopApplicationService(tripStopRepository, deliveryRepository);
 
         sheet = new RouteSheet(
                 "route-demo-001", "tenant-demo", "driver-demo",
@@ -61,10 +66,12 @@ class TripStopApplicationServiceTest {
 
     @Test
     void markArrived_cambia_estado_a_ARRIVED() {
-        TripStop result = service.markArrived("stop-001", "tenant-demo");
+        TripStop result = service.markArrived("stop-001", "tenant-demo", -12.05, -77.05);
 
         assertThat(result.getStatus()).isEqualTo(TripStopStatus.ARRIVED);
         assertThat(result.getArrivalTime()).isNotNull();
+        assertThat(result.getArrivalLatitude()).isEqualTo(-12.05);
+        assertThat(result.getArrivalLongitude()).isEqualTo(-77.05);
         verify(tripStopRepository).save(stop);
     }
 
@@ -73,7 +80,7 @@ class TripStopApplicationServiceTest {
         stop.arrive();
         LocalDateTime arrivalBefore = stop.getArrivalTime();
 
-        TripStop result = service.markArrived("stop-001", "tenant-demo");
+        TripStop result = service.markArrived("stop-001", "tenant-demo", null, null);
 
         assertThat(result.getStatus()).isEqualTo(TripStopStatus.ARRIVED);
         assertThat(result.getArrivalTime()).isEqualTo(arrivalBefore);
@@ -84,14 +91,14 @@ class TripStopApplicationServiceTest {
         stop.arrive();
         stop.complete();
 
-        TripStop result = service.markArrived("stop-001", "tenant-demo");
+        TripStop result = service.markArrived("stop-001", "tenant-demo", null, null);
 
         assertThat(result.getStatus()).isEqualTo(TripStopStatus.COMPLETED);
     }
 
     @Test
     void markArrived_lanza_404_si_no_existe() {
-        assertThatThrownBy(() -> service.markArrived("stop-xxx", "tenant-demo"))
+        assertThatThrownBy(() -> service.markArrived("stop-xxx", "tenant-demo", null, null))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("stop-xxx");
     }
@@ -122,5 +129,22 @@ class TripStopApplicationServiceTest {
         List<TripStop> result = service.listByRouteSheet("route-vacia");
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void listByRouteSheetWithDeliveries_anida_entregas_por_parada() {
+        Delivery delivery = new Delivery(
+                "del-stop-001-1", stop, "Cliente 1", "Paquete #1",
+                null, null, null, null, null, DeliveryStatus.PENDING
+        );
+        when(deliveryRepository.findByTripStop_RouteSheet_ExternalIdOrderByTripStop_StopOrderAsc("route-demo-001"))
+                .thenReturn(List.of(delivery));
+
+        List<TripStopResponse> result = service.listByRouteSheetWithDeliveries("route-demo-001");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).externalId()).isEqualTo("stop-001");
+        assertThat(result.get(0).deliveries()).hasSize(1);
+        assertThat(result.get(0).deliveries().get(0).externalId()).isEqualTo("del-stop-001-1");
     }
 }

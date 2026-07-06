@@ -38,7 +38,9 @@ public class DeliveryController {
                 req.signaturePath(),
                 req.notes(),
                 req.deliveredAt(),
-                req.isCompleted()
+                req.isCompleted(),
+                req.latitude(),
+                req.longitude()
         );
         Delivery delivery = deliveryService.registerDelivery(cmd);
         return ResponseEntity.ok(DeliveryResponse.from(delivery));

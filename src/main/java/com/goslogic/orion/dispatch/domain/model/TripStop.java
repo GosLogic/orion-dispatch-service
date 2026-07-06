@@ -47,6 +47,12 @@ public class TripStop {
     @Column(name = "arrival_time")
     private LocalDateTime arrivalTime;
 
+    @Column(name = "arrival_latitude")
+    private Double arrivalLatitude;
+
+    @Column(name = "arrival_longitude")
+    private Double arrivalLongitude;
+
     @Column(name = "departure_time")
     private LocalDateTime departureTime;
 
@@ -68,9 +74,19 @@ public class TripStop {
 
     /** Registra la llegada del conductor. Idempotente si ya está ARRIVED o COMPLETED. */
     public void arrive() {
+        arrive(null, null);
+    }
+
+    /**
+     * Registra la llegada del conductor capturando su ubicación real (auditoría destino vs. real).
+     * Idempotente si ya está ARRIVED o COMPLETED. Coordenadas opcionales (nullable).
+     */
+    public void arrive(Double latitude, Double longitude) {
         if (status == TripStopStatus.ARRIVED || status == TripStopStatus.COMPLETED) return;
         this.status = TripStopStatus.ARRIVED;
         this.arrivalTime = LocalDateTime.now();
+        this.arrivalLatitude = latitude;
+        this.arrivalLongitude = longitude;
     }
 
     /** Marca la parada como completada (todas las entregas DELIVERED). */

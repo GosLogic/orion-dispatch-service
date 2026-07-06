@@ -15,5 +15,7 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
     List<Delivery> findByTripStop_Id(Long tripStopId);
 
+    List<Delivery> findByTripStop_RouteSheet_ExternalIdOrderByTripStop_StopOrderAsc(String routeSheetExternalId);
+
     long countByTripStop_IdAndStatusNot(Long tripStopId, DeliveryStatus status);
 }

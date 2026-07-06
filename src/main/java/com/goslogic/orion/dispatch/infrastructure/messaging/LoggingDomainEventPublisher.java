@@ -8,7 +8,8 @@ import java.util.Map;
 
 /**
  * Implementación stub de DomainEventPublisher que registra los eventos en el log.
- * Sustituir por una implementación ActiveMQ/RabbitMQ cuando el broker esté disponible.
+ * Bean NO-primary; en runtime {@link JmsDomainEventPublisher} publica al broker JMS/ActiveMQ.
+ * Se mantiene como fallback para tests.
  */
 @Component
 public class LoggingDomainEventPublisher implements DomainEventPublisher {

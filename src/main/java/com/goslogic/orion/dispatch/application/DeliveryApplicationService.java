@@ -66,6 +66,8 @@ public class DeliveryApplicationService {
                 cmd.deliveredAt() != null ? OffsetDateTime.parse(cmd.deliveredAt()) : null,
                 status
         );
+        delivery.setLatitude(cmd.latitude());
+        delivery.setLongitude(cmd.longitude());
         deliveryRepository.save(delivery);
 
         // Side-effect: si todas las entregas del stop están DELIVERED → marcar stop como COMPLETED
@@ -98,6 +100,8 @@ public class DeliveryApplicationService {
             String signaturePath,
             String notes,
             String deliveredAt,
-            boolean isCompleted
+            boolean isCompleted,
+            Double latitude,
+            Double longitude
     ) {}
 }

@@ -29,6 +29,9 @@ spring:
     user: admin
     password: admin
 
+  jms:
+    pub-sub-domain: true
+
 management:
   endpoints:
     web:

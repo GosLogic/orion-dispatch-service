@@ -52,6 +52,12 @@ public class Delivery {
     @Column(name = "delivered_at", columnDefinition = "TIMESTAMPTZ")
     private OffsetDateTime deliveredAt;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

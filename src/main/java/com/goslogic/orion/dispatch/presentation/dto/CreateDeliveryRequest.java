@@ -18,5 +18,7 @@ public record CreateDeliveryRequest(
         String notes,
         String deliveredAt,
         @JsonProperty("is_completed") boolean isCompleted,
-        boolean synced
+        boolean synced,
+        Double latitude,
+        Double longitude
 ) {}

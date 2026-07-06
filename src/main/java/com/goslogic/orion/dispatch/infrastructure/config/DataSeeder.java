@@ -44,6 +44,11 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        seedDemoRoute();
+        seedBetaRoute();
+    }
+
+    private void seedDemoRoute() {
         if (routeSheetRepository.existsByExternalId("route-demo-001")) {
             log.info("[DataSeeder] Datos demo ya existentes — omitiendo seed");
             return;
@@ -116,5 +121,60 @@ public class DataSeeder implements CommandLineRunner {
         ));
 
         log.info("[DataSeeder] Datos demo creados: route-demo-001 con 3 paradas y 3 entregas");
+    }
+
+    /** Hoja de ruta del segundo tenant para la demo de aislamiento multi-tenant (P0-3). Guard propio. */
+    private void seedBetaRoute() {
+        if (routeSheetRepository.existsByExternalId("route-beta-001")) {
+            log.info("[DataSeeder] Datos beta ya existentes — omitiendo seed");
+            return;
+        }
+
+        RouteSheet sheetBeta = new RouteSheet(
+                "route-beta-001",
+                "tenant-beta",
+                "driver-beta",
+                "vehicle-002",
+                "XYZ-9876",
+                "Iveco Daily 2025",
+                LocalDate.now()
+        );
+        sheetBeta.setStatus(RouteSheetStatus.ASSIGNED);
+        routeSheetRepository.save(sheetBeta);
+
+        TripStop betaStop1 = new TripStop(
+                "stop-beta-001", sheetBeta,
+                "Centro de Distribución Beta",
+                "Av. Los Álamos 300, Zona Este",
+                -12.0700, -76.9800,
+                1,
+                LocalDateTime.now().plusHours(1)
+        );
+        tripStopRepository.save(betaStop1);
+
+        TripStop betaStop2 = new TripStop(
+                "stop-beta-002", sheetBeta,
+                "Mercado Mayorista Beta",
+                "Jr. Unión 120, Zona Este",
+                -12.0750, -76.9750,
+                2,
+                LocalDateTime.now().plusHours(2)
+        );
+        tripStopRepository.save(betaStop2);
+
+        deliveryRepository.save(new Delivery(
+                "del-stop-beta-001-1", betaStop1,
+                "Cliente Beta 1", "Paquete beta #1",
+                null, null, null, null, null,
+                DeliveryStatus.PENDING
+        ));
+        deliveryRepository.save(new Delivery(
+                "del-stop-beta-002-1", betaStop2,
+                "Cliente Beta 2", "Paquete beta #2",
+                null, null, null, null, null,
+                DeliveryStatus.PENDING
+        ));
+
+        log.info("[DataSeeder] Datos beta creados: route-beta-001 con 2 paradas y 2 entregas");
     }
 }
