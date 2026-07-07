@@ -5,7 +5,10 @@ import com.goslogic.orion.dispatch.application.exception.ResourceNotFoundExcepti
 import com.goslogic.orion.dispatch.domain.model.RouteSheet;
 import com.goslogic.orion.dispatch.domain.model.RouteSheetStatus;
 import com.goslogic.orion.dispatch.domain.repository.RouteSheetRepository;
+import com.goslogic.orion.dispatch.domain.repository.TripStopRepository;
 import com.goslogic.orion.dispatch.infrastructure.messaging.DomainEventPublisher;
+import com.goslogic.orion.dispatch.presentation.dto.CreateRouteSheetRequest;
+import com.goslogic.orion.dispatch.presentation.dto.CreateStopRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +30,7 @@ import static org.mockito.Mockito.*;
 class RouteSheetApplicationServiceTest {
 
     @Mock RouteSheetRepository routeSheetRepository;
+    @Mock TripStopRepository tripStopRepository;
     @Mock DomainEventPublisher eventPublisher;
 
     RouteSheetApplicationService service;
@@ -35,7 +39,7 @@ class RouteSheetApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new RouteSheetApplicationService(routeSheetRepository, eventPublisher);
+        service = new RouteSheetApplicationService(routeSheetRepository, tripStopRepository, eventPublisher);
 
         sheet = new RouteSheet(
                 "route-demo-001", "tenant-demo", "driver-demo",
@@ -136,5 +140,45 @@ class RouteSheetApplicationServiceTest {
         List<RouteSheet> result = service.listForDriver("tenant-demo", "driver-demo");
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void listForTenant_retorna_hojas_del_tenant() {
+        when(routeSheetRepository.findByTenantExternalId("tenant-demo"))
+                .thenReturn(List.of(sheet));
+
+        List<RouteSheet> result = service.listForTenant("tenant-demo");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getExternalId()).isEqualTo("route-demo-001");
+    }
+
+    @Test
+    void create_asigna_hoja_con_paradas() {
+        CreateRouteSheetRequest req = new CreateRouteSheetRequest(
+                "driver-demo",
+                "vehicle-001",
+                "ABC-1234",
+                "Mercedes Sprinter",
+                LocalDate.now().toString(),
+                List.of(new CreateStopRequest("Cliente A", "Av. Test 1", -12.04, -77.04, 1))
+        );
+
+        RouteSheet result = service.create(req, "tenant-demo", "FLEET_MANAGER");
+
+        assertThat(result.getStatus()).isEqualTo(RouteSheetStatus.ASSIGNED);
+        assertThat(result.getDriverExternalId()).isEqualTo("driver-demo");
+        verify(routeSheetRepository).save(any(RouteSheet.class));
+        verify(tripStopRepository).save(any());
+        verify(eventPublisher).publish(eq("orion.dispatch.route-assigned"), anyMap());
+    }
+
+    @Test
+    void create_lanza_403_si_no_es_gestor() {
+        CreateRouteSheetRequest req = new CreateRouteSheetRequest(
+                "driver-demo", "vehicle-001", "ABC-1234", "Model", LocalDate.now().toString(), List.of());
+
+        assertThatThrownBy(() -> service.create(req, "tenant-demo", "DRIVER"))
+                .isInstanceOf(ForbiddenException.class);
     }
 }

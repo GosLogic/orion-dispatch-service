@@ -13,4 +13,6 @@ public interface RouteSheetRepository extends JpaRepository<RouteSheet, Long> {
     boolean existsByExternalId(String externalId);
 
     List<RouteSheet> findByDriverExternalIdAndTenantExternalId(String driverExternalId, String tenantExternalId);
+
+    List<RouteSheet> findByTenantExternalId(String tenantExternalId);
 }
