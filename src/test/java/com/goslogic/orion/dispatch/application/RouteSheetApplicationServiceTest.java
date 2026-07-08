@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+// Estas pruebas validan reglas críticas de concurrencia e idempotencia en la sincronización móvil de jornada.
 class RouteSheetApplicationServiceTest {
 
     @Mock RouteSheetRepository routeSheetRepository;

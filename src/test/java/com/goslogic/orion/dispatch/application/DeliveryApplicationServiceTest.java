@@ -23,6 +23,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+// Estas pruebas validan concurrencia e idempotencia en la sincronización móvil de entregas.
 class DeliveryApplicationServiceTest {
 
     @Mock DeliveryRepository deliveryRepository;

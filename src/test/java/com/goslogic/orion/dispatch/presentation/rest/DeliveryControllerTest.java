@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(DeliveryController.class)
 @Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
+// Cobertura de API para idempotencia y consistencia bajo sincronización móvil concurrente.
 class DeliveryControllerTest {
 
     @Autowired MockMvc mockMvc;

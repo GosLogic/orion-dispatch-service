@@ -27,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(RouteSheetController.class)
 @Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
+// Cobertura HTTP de escenarios de jornada, clave para concurrencia e idempotencia en sincronización móvil.
 class RouteSheetControllerTest {
 
     @Autowired MockMvc mockMvc;

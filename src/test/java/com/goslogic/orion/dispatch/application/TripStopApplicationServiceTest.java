@@ -28,6 +28,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+// Estas pruebas validan integridad de estado bajo concurrencia e idempotencia en sincronización móvil.
 class TripStopApplicationServiceTest {
 
     @Mock TripStopRepository tripStopRepository;
